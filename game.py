@@ -1,13 +1,6 @@
-from helpers import is_valid_input, clear_console, draw, check_set
-
-class Point:
-    def __init__(self, index, rows, columns):
-        self.x = index % columns
-        self.y = index // columns
-        self.number = index
-
-    def coordinates(self):
-        return [self.x, self.y]
+from helpers import is_valid_input, clear_console, check_set
+from itertools import cycle
+from players import Human
 
 class Board:
     def __init__(self, rows, columns, wall_symbol="#"):
@@ -45,44 +38,57 @@ class Board:
             diags = [[0],[0]]
         return diags
 
+    def draw(self):
+        marks = [' ', 'X', 'O']
+        def row_edge():
+            for i in range(self.ncolumns * 4):
+                print(self.wall, end='')
+            print(self.wall)
+        def row_inside():
+            for i in range(self.ncolumns):
+                print(self.wall + "   ", end='')
+            print(self.wall)
+        def row_center(row):
+            for i in range(self.ncolumns):
+                print(self.wall + " " + marks[self.squares[i][row]] + " ", end='')
+            print(self.wall)
+
+        for row in range(self.nrows):
+            row_edge()
+            row_inside()
+            row_center(row)
+            row_inside()
+        row_edge()
+
 class Game:
-    def __init__(self, board):
+    def __init__(self, board, players):
         self.board = board
+        self.players = cycle(players)
 
     def start(self):
-        draw(self.board)
-        self.move(self.board)
+        clear_console()
+        self.board.draw()
+        self.move(self.board, self.turn())
 
-    def move(self, board):
-        position = self.select_square()
+    def turn(self):
+        next_player = next(self.players)
+        print(next_player.name + ': ')
+        return next_player
+
+    def move(self, board, player):
+        position = player.move(board)
         if position is None:
-            self.move(board)
+            self.move(board, player)
         else:
-            board.mark(position.x, position.y, 1)
+            board.mark(position.x, position.y, player.id)
             if not self.evaluate_board():
-                draw(board)
-                self.move(board)
+                clear_console()
+                board.draw()
+                self.move(board, self.turn())
             else:
-                draw(board)
-                self.win()
-
-    def select_square(self):
-        box_number = input('\nPlace mark in box: ')
-        if (is_valid_input(box_number, 0, self.board.size)):
-            position = Point(int(box_number), self.board.nrows, self.board.ncolumns)
-        else:
-            print('Please input a number from 0 to ' + str(self.board.size - 1))
-            return None
-        if self.is_not_taken(position.x, position.y):
-            return position
-        else:
-            print("Square taken!")
-        return None
-
-    def is_not_taken(self, x, y):
-        if not self.board.squares[x][y] == 0:
-            return False
-        return True
+                clear_console()
+                board.draw()
+                self.win(player)
 
     def evaluate_board(self):
         if check_set(self.board.columns()):
@@ -93,11 +99,43 @@ class Game:
             return True
         return False
 
-    def win(self):
-        print("\nYOU WON!!!\n")
+    def win(self, player):
+        print("\n" + player.name + " WON!!!\n")
+
+class Point:
+    def __init__(self, index, rows, columns):
+        self.x = index % columns
+        self.y = index // columns
+        self.number = index
+
+    def coordinates(self):
+        return [self.x, self.y]
 
 class Player:
-    def __init__(self, name, symbol, identity):
+    def __init__(self, name, symbol, identity, player_type):
         self.name = name
         self.symbol = symbol
         self.id = identity
+        self.player_type = player_type
+
+    def move(self, board):
+        selection = self.player_type.choose_square(board)
+        return self.validate_square(board, selection)
+
+    def validate_square(self, board, selection):
+        if (is_valid_input(selection, 0, board.size)):
+            position = Point(int(selection), len(board.rows()), len(board.columns()))
+        else:
+            print('Please input a number from 0 to ' + str(board.size - 1))
+            return None
+        if self.is_not_taken(board, position.x, position.y):
+            return position
+        else:
+            print("Square taken!")
+        return None
+
+    def is_not_taken(self, board, x, y):
+        if not board.squares[x][y] == 0:
+            return False
+        return True
+

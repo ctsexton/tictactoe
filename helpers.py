@@ -26,27 +26,3 @@ def check_set(lst):
             return True
     return False
 
-def draw(board):
-    marks = [' ', 'X', 'O']
-    def row_edge():
-        for i in range(board.ncolumns * 4):
-            print(board.wall, end='')
-        print(board.wall)
-    def row_inside():
-        for i in range(board.ncolumns):
-            print(board.wall + "   ", end='')
-        print(board.wall)
-    def row_center(row):
-        for i in range(board.ncolumns):
-            print(board.wall + " " + marks[board.squares[i][row]] + " ", end='')
-        print(board.wall)
-
-    clear_console()
-
-    for row in range(board.nrows):
-        row_edge()
-        row_inside()
-        row_center(row)
-        row_inside()
-    row_edge()
-
