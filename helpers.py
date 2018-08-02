@@ -26,3 +26,5 @@ def check_set(lst):
             return True
     return False
 
+def coord_to_index(x, y, rows, columns):
+    return x % columns + y * rows

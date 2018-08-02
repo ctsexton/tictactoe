@@ -1,6 +1,6 @@
-from helpers import is_valid_input, clear_console, check_set
+from helpers import is_valid_input, clear_console, check_set, coord_to_index
 from itertools import cycle
-from players import Human
+from players import Human, Computer
 
 class Board:
     def __init__(self, rows, columns, wall_symbol="#"):
@@ -37,6 +37,14 @@ class Board:
         else:
             diags = [[0],[0]]
         return diags
+
+    def get_empty(self):
+        empty = []
+        for i in range(self.nrows):
+            for j in range(self.ncolumns):
+                if (self.squares[j][i] == 0):
+                    empty.append(coord_to_index(j, i, self.nrows, self.ncolumns))
+        return empty
 
     def draw(self):
         marks = [' ', 'X', 'O']
@@ -76,6 +84,9 @@ class Game:
         return next_player
 
     def move(self, board, player):
+        print(board.get_empty())
+        comp = Computer()
+        comp.choose_square(board)
         position = player.move(board)
         if position is None:
             self.move(board, player)
@@ -110,6 +121,7 @@ class Point:
 
     def coordinates(self):
         return [self.x, self.y]
+
 
 class Player:
     def __init__(self, name, symbol, identity, player_type):
