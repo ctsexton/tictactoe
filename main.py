@@ -1,4 +1,4 @@
-from library import Game, Board, Player, Human, Computer, UI
+from library import Game, Board, Player, Human, Computer
 from helpers import clear_console
 
 rows = 3
@@ -8,8 +8,7 @@ def main():
     print('\nWelcome to TIC TAC TOE!\n')
     name = input('Please enter your name: ')
 
-    symbol = 'X'
-    human = Player(name, symbol, 1, Human())
+    human = Player(name, 'X', 1, Human())
     computer = Player('HAL', 'O', 2, Computer())
 
     board = Board(rows, columns)

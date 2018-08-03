@@ -1,4 +1,4 @@
-from helpers import clear_console, check_set, nested_groups, check_equal
+from helpers import clear_console, check_set, nested_groups, check_equal, coord_to_index
 from itertools import cycle
 from copy import deepcopy
 from operator import itemgetter
@@ -7,7 +7,10 @@ from random import shuffle
 class Game:
     def __init__(self, board, players):
         self.board = board
-        self.ui = UI()
+        symbols = [' ']
+        for player in players:
+            symbols.append(player.symbol)
+        self.ui = UI(symbols)
         self.board = board
         self.players = cycle(players)
 
@@ -46,7 +49,6 @@ class Board:
         self.no_rows = rows
         self.no_columns = columns
         self.squares = []
-
         for i in range(rows * columns):
             self.squares.append(0)
 
@@ -107,27 +109,31 @@ class Move:
         return None
 
 class UI:
-    def __init__(self):
+    def __init__(self, symbols):
         self.wall = '#'
+        self.marks = symbols
 
     def draw(self, board):
-        marks = [' ', 'X', 'O']
         def row_edge():
             for i in range(board.no_columns * 4):
                 print(self.wall, end='')
+            print(self.wall)
+        def row_label(row):
+            for i in range(board.no_columns):
+                print(self.wall + str(coord_to_index(i, row, board.no_columns)) + "  ", end='')
+            print(self.wall)
+        def row_center(row):
+            for i in range(board.no_columns):
+                print(self.wall + " " + self.marks[board.get_columns()[i][row]] + " ", end='')
             print(self.wall)
         def row_inside():
             for i in range(board.no_columns):
                 print(self.wall + "   ", end='')
             print(self.wall)
-        def row_center(row):
-            for i in range(board.no_columns):
-                print(self.wall + " " + marks[board.get_columns()[i][row]] + " ", end='')
-            print(self.wall)
 
         for row in range(board.no_rows):
             row_edge()
-            row_inside()
+            row_label(row)
             row_center(row)
             row_inside()
         row_edge()
@@ -158,13 +164,14 @@ class Human:
 
 class Computer:
     def choose_square(self, board):
-        player_self = Player('player_self', 'X', 2, Computer())
+        print('Thinking...')
+        player_self = Player('player_self', 'O', 2, Computer())
         opponent = Player('opponent', 'X', 1, Computer())
-        chooser = Analyzer(player_self, opponent)
-        return chooser.best_move(board)['square']
-        return int(input("Place mark: "))
+        decision = Analyzer(player_self, opponent)
+        return decision.best_move(board)['square']
 
 class Analyzer:
+    # Uses the minimax algorithm to decide best moves    
     def __init__(self, player_one, opponent):
         self.player_one = player_one
         self.opponent = opponent
@@ -173,7 +180,7 @@ class Analyzer:
         player = self.player_one
         moves_available = board.get_empty()
         move_scores = list(map(lambda square: {'square': square, 'score': self.get_score(square, board, player)}, moves_available))
-        shuffle(move_scores)
+        shuffle(move_scores) # so that the computer player doesn't always play the same move when there are other, equal options
         if player.id == 2:
             best_moves = sorted(move_scores, key=itemgetter('score'), reverse=True)
         else:
@@ -185,12 +192,11 @@ class Analyzer:
         outcome = new_move.result(square, player)
         if outcome is None:
             chooser = Analyzer(self.opponent, self.player_one)
-            outcome = chooser.best_move(new_move.board)
-            return outcome['score']
+            return chooser.best_move(new_move.board)['score']
         elif outcome == 'tie':
             return 0
         elif outcome == 2:
-            return 1
+            return 10
         else:
-            return -1
+            return -10
 

@@ -10,8 +10,8 @@ def check_set(lst):
             return row
     return None
 
-def coord_to_index(x, y, rows, columns):
-    return x % columns + y * rows
+def coord_to_index(x, y, columns):
+    return x + y * columns
 
 def index_to_coord(index, rows, columns):
     x = index % columns
@@ -20,12 +20,13 @@ def index_to_coord(index, rows, columns):
 
 def nested_groups(original, no_groups, group_size, direction = True):
     groups = []
-    i = 0
     for group in range(no_groups):
         groups.append([])
         for element in range(group_size):
             if direction == True:
-                groups[group].append(original[coord_to_index(element, group, no_groups, group_size)])
+                index = coord_to_index(element, group, group_size)
+                groups[group].append(original[index])
             else:
-                groups[group].append(original[coord_to_index(group, element, no_groups, group_size)])
+                index = coord_to_index(group, element, no_groups)
+                groups[group].append(original[index])
     return groups
