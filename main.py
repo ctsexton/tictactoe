@@ -1,4 +1,4 @@
-from game import Game, Board, Player, Human
+from game import Game, Board, Player, Human, Computer
 
 rows = 3
 columns = 3
@@ -8,7 +8,7 @@ def main():
     name = input('Please enter your name: ')
     symbol = 'X'
     human = Player(name, symbol, 1, Human())
-    computer = Player('HAL', 'O', 2, Human())
+    computer = Player('HAL', 'O', 2, Computer())
     game = Game(Board(rows, columns, '$'), [human, computer])
     game.start()
 

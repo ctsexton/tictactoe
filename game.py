@@ -1,6 +1,8 @@
 from helpers import is_valid_input, clear_console, check_set, coord_to_index
 from itertools import cycle
-from players import Human, Computer
+from copy import deepcopy
+from operator import itemgetter
+from random import shuffle
 
 class Board:
     def __init__(self, rows, columns, wall_symbol="#"):
@@ -68,6 +70,18 @@ class Board:
             row_inside()
         row_edge()
 
+class Loop:
+    def __init__(self, game, board, players):
+        self.board = board
+        self.game = game
+        self.players = cycle(players)
+
+    def start(self):
+        clear_console()
+        self.board.draw()
+        first_player = game.turn()
+        game.move(self.board, first_player)
+
 class Game:
     def __init__(self, board, players):
         self.board = board
@@ -84,34 +98,48 @@ class Game:
         return next_player
 
     def move(self, board, player):
-        print(board.get_empty())
-        comp = Computer()
-        comp.choose_square(board)
         position = player.move(board)
         if position is None:
             self.move(board, player)
         else:
             board.mark(position.x, position.y, player.id)
-            if not self.evaluate_board():
+            if self.state(board, player) == 2:
                 clear_console()
                 board.draw()
                 self.move(board, self.turn())
+            elif self.state(board, player) == 0:
+                clear_console()
+                board.draw()
+                self.tie()
             else:
                 clear_console()
                 board.draw()
                 self.win(player)
 
-    def evaluate_board(self):
-        if check_set(self.board.columns()):
+
+    def state(self, board, player):
+        if self.evaluate_board(board) == True and player.id == 1:
+            return 1 # Win
+        if self.evaluate_board(board) == True and player.id == 2:
+            return -1 # Win
+        if board.get_empty() == []:
+            return 0 # Tie
+        return 2 # Incomplete
+
+    def evaluate_board(self, board):
+        if check_set(board.columns()):
             return True
-        if check_set(self.board.rows()):
+        if check_set(board.rows()):
             return True
-        if check_set(self.board.diagonals()):
+        if check_set(board.diagonals()):
             return True
         return False
 
     def win(self, player):
         print("\n" + player.name + " WON!!!\n")
+
+    def tie(self):
+        print("\nIt was a tie!\n")
 
 class Point:
     def __init__(self, index, rows, columns):
@@ -140,14 +168,69 @@ class Player:
         else:
             print('Please input a number from 0 to ' + str(board.size - 1))
             return None
-        if self.is_not_taken(board, position.x, position.y):
+        if self.is_not_taken(board, position.number):
             return position
         else:
             print("Square taken!")
         return None
 
-    def is_not_taken(self, board, x, y):
-        if not board.squares[x][y] == 0:
-            return False
-        return True
+    def is_not_taken(self, board, index):
+        if index in board.get_empty():
+            return True
+        return False
+
+class Human:
+    def choose_square(self, board):
+        return input('\nPlace mark in box: ')
+
+class Computer:
+    def choose_square(self, board):
+        x = self.best_move(board, 2)['square']
+        print(x)
+        return x
+
+    def best_move(self, board, player):
+        empty = board.get_empty()
+        moves_available = list(map(lambda square: self.get_score(square, board, player), empty))
+        shuffle(moves_available)
+        if player == 1:
+            best_move = sorted(moves_available, key=itemgetter('score'), reverse=True)
+        else:
+            best_move = sorted(moves_available, key=itemgetter('score'))
+        return best_move[0]
+
+    def get_score(self, square, board, player):
+        new_board = deepcopy(board)
+        position = Point(square, new_board.nrows, new_board.ncolumns)
+        new_board.mark(position.x, position.y, player)
+        score = self.state(new_board, player)
+        if score == 2:
+            new_player = self.switch_player(player)
+            outcome = self.best_move(new_board, new_player)
+            return {'square': square, 'score': outcome['score']}
+        else:
+            return {'square': square, 'score': score}
+
+    def switch_player(self, player):
+        if player == 1:
+            return 2
+        return 1
+
+    def state(self, board, player):
+        if self.evaluate_board(board) == True and player == 1:
+            return 1 # Win
+        if self.evaluate_board(board) == True and player == 2:
+            return -1 # Win
+        if board.get_empty() == []:
+            return 0 # Tie
+        return 2 # Incomplete
+
+    def evaluate_board(self, board):
+        if check_set(board.columns()):
+            return True
+        if check_set(board.rows()):
+            return True
+        if check_set(board.diagonals()):
+            return True
+        return False
 
