@@ -143,17 +143,6 @@ class UI:
             row_inside()
         row_edge()
 
-#class Player:
-#    def __init__(self, name, symbol, identity, player_type):
-#        self.name = name
-#        self.symbol = symbol
-#        self.id = identity
-#        self.player_type = player_type
-#
-#    def move(self, board):
-#        return self.player_type.choose_square(board)
-#
-
 class Human:
     def __init__(self, name, symbol, identity):
         self.name = name
@@ -173,11 +162,6 @@ class Human:
                 print('Not a valid number!')
         return val
 
-class Dummy:
-    # The dummy class is simply a "dummy player" for the Analyzer class to input as a player placeholder
-    def __init__(self, identity):
-        self.id = identity
-
 class Computer:
     def __init__(self, name, symbol, identity, opponent_id):
         self.name = name
@@ -191,6 +175,11 @@ class Computer:
         opponent = Dummy(self.opponent_id)
         decision = Analyzer(player_self, opponent, player_self.id, 0)
         return decision.best_move(board)['square']
+
+class Dummy:
+    # The dummy class is simply a "dummy player" for the Analyzer class to input as a player placeholder
+    def __init__(self, identity):
+        self.id = identity
 
 class Analyzer:
     # Uses the minimax algorithm to decide best moves    
