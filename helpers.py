@@ -7,8 +7,8 @@ def check_equal(lst):
 def check_set(lst):
     for row in iter(lst):
         if 0 not in row and check_equal(row):
-            return True
-    return False
+            return row
+    return None
 
 def coord_to_index(x, y, rows, columns):
     return x % columns + y * rows
