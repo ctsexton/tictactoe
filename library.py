@@ -120,7 +120,12 @@ class UI:
             print(self.wall)
         def row_label(row):
             for i in range(board.no_columns):
-                print(self.wall + str(coord_to_index(i, row, board.no_columns)) + "  ", end='')
+                label = str(coord_to_index(i, row, board.no_columns))
+                if len(label) == 1:
+                    label = label + '  '
+                if len(label) == 2:
+                    label = label + ' '
+                print(self.wall + label, end='')
             print(self.wall)
         def row_center(row):
             for i in range(board.no_columns):
@@ -138,18 +143,24 @@ class UI:
             row_inside()
         row_edge()
 
-class Player:
-    def __init__(self, name, symbol, identity, player_type):
+#class Player:
+#    def __init__(self, name, symbol, identity, player_type):
+#        self.name = name
+#        self.symbol = symbol
+#        self.id = identity
+#        self.player_type = player_type
+#
+#    def move(self, board):
+#        return self.player_type.choose_square(board)
+#
+
+class Human:
+    def __init__(self, name, symbol, identity):
         self.name = name
         self.symbol = symbol
         self.id = identity
-        self.player_type = player_type
 
     def move(self, board):
-        return self.player_type.choose_square(board)
-
-class Human:
-    def choose_square(self, board):
         while True:
             try:
                 val = int(input("Place mark in box number: "))
@@ -162,26 +173,39 @@ class Human:
                 print('Not a valid number!')
         return val
 
+class Dummy:
+    # The dummy class is simply a "dummy player" for the Analyzer class to input as a player placeholder
+    def __init__(self, identity):
+        self.id = identity
+
 class Computer:
-    def choose_square(self, board):
+    def __init__(self, name, symbol, identity, opponent_id):
+        self.name = name
+        self.symbol = symbol
+        self.id = identity
+        self.opponent_id = opponent_id
+
+    def move(self, board):
         print('Thinking...')
-        player_self = Player('player_self', 'O', 2, Computer())
-        opponent = Player('opponent', 'X', 1, Computer())
-        decision = Analyzer(player_self, opponent)
+        player_self = Dummy(self.id)
+        opponent = Dummy(self.opponent_id)
+        decision = Analyzer(player_self, opponent, player_self.id, 0)
         return decision.best_move(board)['square']
 
 class Analyzer:
     # Uses the minimax algorithm to decide best moves    
-    def __init__(self, player_one, opponent):
+    def __init__(self, player_one, opponent, original_player_id, depth):
         self.player_one = player_one
         self.opponent = opponent
+        self.original_player_id = original_player_id
+        self.depth = depth
         
     def best_move(self, board):
         player = self.player_one
         moves_available = board.get_empty()
         move_scores = list(map(lambda square: {'square': square, 'score': self.get_score(square, board, player)}, moves_available))
         shuffle(move_scores) # so that the computer player doesn't always play the same move when there are other, equal options
-        if player.id == 2:
+        if player.id == self.original_player_id:
             best_moves = sorted(move_scores, key=itemgetter('score'), reverse=True)
         else:
             best_moves = sorted(move_scores, key=itemgetter('score'))
@@ -191,12 +215,13 @@ class Analyzer:
         new_move = Move(board)
         outcome = new_move.result(square, player)
         if outcome is None:
-            chooser = Analyzer(self.opponent, self.player_one)
+            chooser = Analyzer(self.opponent, self.player_one, self.original_player_id, self.depth + 1)
             return chooser.best_move(new_move.board)['score']
         elif outcome == 'tie':
-            return 0
-        elif outcome == 2:
-            return 10
+            score = 0
+        elif outcome == self.original_player_id:
+            score = 10
         else:
-            return -10
+            score = -10
+        return score - self.depth # subtract depth to find fastest path to winning
 
