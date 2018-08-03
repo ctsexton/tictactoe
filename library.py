@@ -4,7 +4,7 @@ from copy import deepcopy
 from operator import itemgetter
 from random import shuffle
 
-class Controller:
+class Game:
     def __init__(self, board, players):
         self.board = board
         self.ui = UI()
@@ -22,14 +22,14 @@ class Controller:
         return next_player
 
     def loop(self, board):
-        game = Game(board)
+        move = Move(board)
         player = self.turn()
-        result = game.play(player)
+        result = move.play(player)
         clear_console()
-        self.ui.draw(game.board)
-        if result['score'] == 2:
-            self.loop(game.board)
-        elif result['score'] == 0:
+        self.ui.draw(move.board)
+        if result is None:
+            self.loop(move.board)
+        elif result == 'tie':
             self.tie()
         else:
             self.win(player)
@@ -39,44 +39,6 @@ class Controller:
 
     def tie(self):
         print("\nIt was a tie!\n")
-
-class Game:
-    def __init__(self, board):
-        self.board = deepcopy(board)
-
-    def play(self, player):
-        selected_square = player.move(self.board)
-        return self.get_score(selected_square, player)
-
-    def get_score(self, square, player):
-        self.board.mark(square, player.id)
-        score = self.score(self.board, player)
-        return {'square': square, 'score': score}
-
-    def score(self, board, player):
-        winner = self.check_win(board)
-        if winner is None:
-            if board.get_empty() == []:
-                return 0 # Tie
-            return 2 # Incomplete
-        if winner == player.id:
-            return 1 # Win
-        if winner != player.id:
-            return -1 # Lose
-
-    def check_win(self, board):
-        groups = [board.get_diagonals(), board.get_rows(), board.get_columns()]
-        for group in groups:
-            winner = self.find_winner(group)
-            if winner is not None:
-                return winner
-        return None
-
-    def find_winner(self, lst):
-        for group in iter(lst):
-            if 0 not in group and group[1:] == group[:-1]:
-                return group[0] # mark in row is player.id of winner
-        return None
 
 class Board:
     def __init__(self, rows, columns):
@@ -113,6 +75,36 @@ class Board:
             if self.squares[i] == 0:
                 empty.append(i)
         return empty
+
+class Move:
+    def __init__(self, board):
+        self.board = deepcopy(board)
+
+    def play(self, player):
+        return self.result(player.move(self.board), player)
+
+    def result(self, square, player):
+        self.board.mark(square, player.id)
+        winner = self.check_win(self.board)
+        if winner is None:
+            if self.board.get_empty() == []:
+                return 'tie'
+            return None
+        return winner
+
+    def check_win(self, board):
+        groups = [board.get_diagonals(), board.get_rows(), board.get_columns()]
+        for group in groups:
+            winner = self.find_winner(group)
+            if winner is not None:
+                return winner
+        return None
+
+    def find_winner(self, lst):
+        for group in iter(lst):
+            if 0 not in group and group[1:] == group[:-1]:
+                return group[0] # mark in row is player.id of winner
+        return None
 
 class UI:
     def __init__(self):
@@ -166,35 +158,39 @@ class Human:
 
 class Computer:
     def choose_square(self, board):
-        return self.best_move(board, 2)['square']
+        player_self = Player('player_self', 'X', 2, Computer())
+        opponent = Player('opponent', 'X', 1, Computer())
+        chooser = Analyzer(player_self, opponent)
+        return chooser.best_move(board)['square']
+        return int(input("Place mark: "))
+
+class Analyzer:
+    def __init__(self, player_one, opponent):
+        self.player_one = player_one
+        self.opponent = opponent
         
-    def best_move(self, board, player):
+    def best_move(self, board):
+        player = self.player_one
         moves_available = board.get_empty()
-        move_scores = list(map(lambda square: self.get_score(square, board, player), moves_available))
+        move_scores = list(map(lambda square: {'square': square, 'score': self.get_score(square, board, player)}, moves_available))
         shuffle(move_scores)
-        if player.id == 1:
-            best_move = sorted(moves_available, key=itemgetter('score'), reverse=True)
+        if player.id == 2:
+            best_moves = sorted(move_scores, key=itemgetter('score'), reverse=True)
         else:
-            best_move = sorted(moves_available, key=itemgetter('score'))
-        return best_move[0]
+            best_moves = sorted(move_scores, key=itemgetter('score'))
+        return best_moves[0]
 
     def get_score(self, square, board, player):
-        new_game = Game(board)
-        score = new_game.get_score(square, player)
-        if score == 2:
-            new_player = self.switch_player(player)
-            outcome = self.best_move(new_board, new_player)
-            return {'square': square, 'score': outcome['score']}
+        new_move = Move(board)
+        outcome = new_move.result(square, player)
+        if outcome is None:
+            chooser = Analyzer(self.opponent, self.player_one)
+            outcome = chooser.best_move(new_move.board)
+            return outcome['score']
+        elif outcome == 'tie':
+            return 0
+        elif outcome == 2:
+            return 1
         else:
-            return {'square': square, 'score': score}
-        
-    def switch_player(self, player):
-        if player == 1:
-            return 2
-        return 1
-
-    def turn(self):
-        next_player = next(self.players)
-        print(next_player.name + ': ')
-        return next_player
+            return -1
 
