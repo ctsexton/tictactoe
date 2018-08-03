@@ -1,5 +1,4 @@
 from library import Game, Board, Human, Computer
-from helpers import clear_console
 
 rows = 3
 columns = 3
